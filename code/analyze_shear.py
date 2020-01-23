@@ -26,7 +26,7 @@ graph_dir = 'graphs/'
 
 def gtheta(gal, shear, random, config, out_file_name, NJK):
   
-    theta, xi_t, xi_x, npairs, xi_tr, xi_xr, npairs_r = cross_corr(gal, shear, random, config, weight = "False")
+    theta, xi_t, xi_x, npairs, xi_tr, xi_xr, npairs_r = cross_corr(gal, shear, random, config)
     print("Done with the correlation function")
     xi_jk_holder = []
     print("Starting the jacknife resampling")
@@ -37,8 +37,9 @@ def gtheta(gal, shear, random, config, out_file_name, NJK):
 	mask_gal = gal["JK_LABEL"] != jk
 	gal_jk = {"RA": gal["RA"][mask_gal], "DEC": gal["DEC"][mask_gal]}
 	mask_shear = shear["JK_LABEL"] != jk
-	shear_jk = {"RA": shear["RA"][mask_shear], "DEC": shear["DEC"][mask_shear]}
-        theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config, weight = "False")
+	shear_jk = {"RA": shear["RA"][mask_shear], "DEC": shear["DEC"][mask_shear], 
+	            "gamma1": shear["gamma1"][mask_shear], "gamma2": shear["gamma2"][mask_shear]}
+        theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config)
            
 	xi_jk_holder.append(xi_t_jk - xi_tr_jk)
 	print("done with jk resampling = ", jk)

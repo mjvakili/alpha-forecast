@@ -69,4 +69,4 @@ def shear_preprocess(zmin, zmax):
 
 if __name__  == '__main__':
     
-    shear_loader(1.6, 1.7)
+    shear_preprocess(1.6, 1.7)

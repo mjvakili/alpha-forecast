@@ -1,9 +1,12 @@
 import numpy as np
 from single_cross import cross_corr
-from kmeans import gal_loader, shear_loader
 import fitsio
 import sys
 import h5py
+import kmeans_radec
+import fitsio
+import numpy as np
+from fitsio import FITS
 
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
@@ -24,25 +27,42 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 plt.switch_backend('Agg')
 graph_dir = 'graphs/'
 
-def gtheta(gal, shear, random, config, out_file_name, NJK):
-  
+def gtheta(config, zmax, out_file_name, NJK):
+
+    gal = fitsio.read("data/gal_zmax_"+str(zmax)+".fits",
+    		      columns = ["RA", "DEC"])
+    shear = fitsio.read("data/shear_zmax_"+str(zmax)+".fits",
+    		      columns = ["RA", "DEC", "gamma1", "gamma2"])
+    random = fitsio.read('flagship_randoms_v2.fits')
+
+    print("Done with reading the full-sky catalogs")
     theta, xi_t, xi_x, npairs, xi_tr, xi_xr, npairs_r = cross_corr(gal, shear, random, config)
     print("Done with the correlation function")
+    gal.close()
+    shear.close()
+    random.close()
+    print("Done with closing the random, gal, and shear files")
+    
     xi_jk_holder = []
     print("Starting the jacknife resampling")
     for jk in range(NJK):
-	   
-        mask_random = random["JK_LABEL"] != jk
- 	random_jk = {"RA": random["RA"][mask_random], "DEC": random["DEC"][mask_random]}
-	mask_gal = gal["JK_LABEL"] != jk
-	gal_jk = {"RA": gal["RA"][mask_gal], "DEC": gal["DEC"][mask_gal]}
-	mask_shear = shear["JK_LABEL"] != jk
-	shear_jk = {"RA": shear["RA"][mask_shear], "DEC": shear["DEC"][mask_shear], 
-	            "gamma1": shear["gamma1"][mask_shear], "gamma2": shear["gamma2"][mask_shear]}
-        theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config)
+    	
+	gal_jk = fitsio.read("data/gal_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits",
+    			  columns = ["RA", "DEC"])
+    	shear_jk = fitsio.read("data/shear_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits",
+    		            columns = ["RA", "DEC", "gamma1", "gamma2"])
+    	random_jk = fitsio.read("data/random_jk_"+str(jk)+".fits",
+    		            columns = ["RA", "DEC"])
+	
+	#compute the cross-correlation for the jackknife region
+	theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config)
            
 	xi_jk_holder.append(xi_t_jk - xi_tr_jk)
 	print("done with jk resampling = ", jk)
+
+	gal_jk.close()
+	shear_jk.close()
+	random_jk.close()
     	   
     xi_jk_holder = np.array(xi_jk_holder)
     if xi_jk_holder.shape[0] < NJK:
@@ -90,8 +110,7 @@ if __name__ == '__main__':
     print('maximum angle  = ', tmax)
     NJK = int(sys.argv[6])
     print('number of jacknife resampling  = ', NJK)
-    gal, random  = gal_loader(zmin, zmax) 
-    shear  = shear_loader(zmin, zmax) 
+    
     print("done with loading the cats")
     config = {'min_sep': tmin, 
     	      'max_sep': tmax, 
@@ -108,4 +127,4 @@ if __name__ == '__main__':
     sample_file.create_dataset("xi_samples", (nbins, 100), data = np.zeros((nbins, NJK)))
     sample_file.close()
     print("done with output initialization")
-    gtheta(gal, shear, random, config, out_file_name, NJK)
+    gtheta(config, zmax, out_file_name, NJK)

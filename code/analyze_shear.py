@@ -38,9 +38,6 @@ def gtheta(config, zmax, out_file_name, NJK):
     print("Done with reading the full-sky catalogs")
     theta, xi_t, xi_x, npairs, xi_tr, xi_xr, npairs_r = cross_corr(gal, shear, random, config)
     print("Done with the correlation function")
-    gal.close()
-    shear.close()
-    random.close()
     print("Done with closing the random, gal, and shear files")
     
     xi_jk_holder = []
@@ -59,10 +56,6 @@ def gtheta(config, zmax, out_file_name, NJK):
            
 	xi_jk_holder.append(xi_t_jk - xi_tr_jk)
 	print("done with jk resampling = ", jk)
-
-	gal_jk.close()
-	shear_jk.close()
-	random_jk.close()
     	   
     xi_jk_holder = np.array(xi_jk_holder)
     if xi_jk_holder.shape[0] < NJK:

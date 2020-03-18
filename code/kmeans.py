@@ -2,6 +2,7 @@ import kmeans_radec
 import fitsio
 import numpy as np
 from fitsio import FITS
+np.random.seed(12345)
 
 def gal_preprocess(zmin, zmax):
 
@@ -39,6 +40,46 @@ def gal_preprocess(zmin, zmax):
     
     return None
 
+def incomplete_gal_preprocess(zmin, zmax):
+
+    lens = fitsio.read("lens.fits", columns = ["ra_gal", "dec_gal", "observed_redshift_gal"])
+    ra, dec, z = lens["ra_gal"], lens["dec_gal"], lens["observed_redshift_gal"]
+    mask = (z>zmin)&(z<zmax)
+    ra, dec, z = ra[mask], dec[mask], z[mask]
+
+    random_choice = np.random.choice(np.arange(len(ra)), int(0.45*len(ra)), replace = False)
+    ra, dec, z = ra[random_choice], dec[random_choice], z[random_choice]
+
+    print("length of the catalog after applying the cut", len(ra))
+    coord = np.vstack([ra, dec]).T
+    centers = np.loadtxt("flagship_jk_centers_v2.txt")
+    NJK = centers.shape[0]
+    print("Segmentation begins!")
+    gal_labels_jk = kmeans_radec.find_nearest(coord, centers)
+    print("Done with assigning jacknife labels to galaxies")
+    
+    gals = {"RA": ra, 
+    	    "DEC": dec, 
+	    "redshift": z,
+	    "JK_LABEL": gal_labels_jk}
+    
+    fits = FITS('data/incomplete_gal_zmax_'+str(round(zmax, 1))+'.fits', 'rw')
+    fits.write(gals, names = ["RA", "DEC", "redshift", "JK_LABEL"])
+    fits.close()
+    
+    for jk in range(len(centers)):
+    	
+        gal_jk_mask = gals["JK_LABEL"] != jk
+	gal_jk = {"RA": ra[gal_jk_mask], 
+	    "DEC": dec[gal_jk_mask], 
+	    "redshift": z[gal_jk_mask]}
+        
+	fits = FITS('data/incomplete_gal_zmax_'+str(round(zmax, 1))+'_jk_'+str(jk)+'.fits','rw')
+	fits.write(gal_jk, names = ["RA", "DEC", "redshift"])
+        fits.close()
+    
+    return None
+
 def random_preprocess():
 
     randoms = fitsio.read('flagship_randoms_v2.fits')
@@ -57,6 +98,54 @@ def random_preprocess():
 
     return None	
 
+def incomplete_shear_preprocess(zmin, zmax):
+
+    shear = fitsio.read("source_v2.fits", columns = ["ra_gal", "dec_gal", "observed_redshift_gal", "gamma1", "gamma2"])
+    ra, dec, z = shear["ra_gal"], shear["dec_gal"], shear["observed_redshift_gal"]
+    g1, g2 = shear["gamma1"], shear["gamma2"]
+    
+    dz = 0.05*(1+z)   #redshift uncertainties
+    z = np.random.normal(z, dz)  #perturbed redshifts
+
+    mask = (z>zmax+0.1)
+    z = z[mask]
+    ra, dec = ra[mask], dec[mask]
+    g1, g2 = g1[mask], g2[mask]
+    
+
+    print("length of the catalog after applying the cut", len(ra))
+    coord = np.vstack([ra, dec]).T
+    centers = np.loadtxt("flagship_jk_centers_v2.txt")
+    NJK = centers.shape[0]
+    print("Segmentation begins!")
+    gal_labels_jk = kmeans_radec.find_nearest(coord, centers)
+    print("Done with assigning jacknife labels to galaxies")
+    
+    gals = {"RA": ra, 
+    	"DEC": dec, 
+	"gamma1": g1, 
+	"gamma2": g2,
+	"redshift": z,
+	"JK_LABEL": gal_labels_jk} 
+    
+    fits = FITS('data/incomplete_shear_zmax_'+str(round(zmax, 1))+'.fits', 'rw')
+    fits.write(gals, names = ["RA", "DEC", "gamma1", "gamma2", "redshift", "JK_LABEL"])
+    fits.close()
+
+    for jk in range(len(centers)):
+    	
+        gal_jk_mask = gals["JK_LABEL"] != jk
+	gal_jk = {"RA": ra[gal_jk_mask], 
+	    "DEC": dec[gal_jk_mask], 
+	    "gamma1": g1[gal_jk_mask], 
+	    "gamma2": g2[gal_jk_mask],
+	    "redshift": z[gal_jk_mask]}
+        
+	fits = FITS('data/incomplete_shear_zmax_'+str(round(zmax, 1))+'_jk_'+str(jk)+'.fits','rw')
+	fits.write(gal_jk, names = ["RA", "DEC", "gamma1", "gamma2", "redshift"])
+        fits.close()
+	
+    return None
 def shear_preprocess(zmin, zmax):
 
     shear = fitsio.read("source_v2.fits", columns = ["ra_gal", "dec_gal", "observed_redshift_gal", "gamma1", "gamma2"])
@@ -81,7 +170,7 @@ def shear_preprocess(zmin, zmax):
 	"redshift": z,
 	"JK_LABEL": gal_labels_jk} 
     
-    fits = FITS('data/shear_zmax_'+str(zmax)+'.fits', 'rw')
+    fits = FITS('data/shear_zmax_'+str(round(zmax, 1))+'.fits', 'rw')
     fits.write(gals, names = ["RA", "DEC", "gamma1", "gamma2", "redshift", "JK_LABEL"])
     fits.close()
 
@@ -94,7 +183,7 @@ def shear_preprocess(zmin, zmax):
 	    "gamma2": g2[gal_jk_mask],
 	    "redshift": z[gal_jk_mask]}
         
-	fits = FITS('data/shear_zmax_'+str(zmax)+'_jk_'+str(jk)+'.fits','rw')
+	fits = FITS('data/shear_zmax_'+str(round(zmax, 1))+'_jk_'+str(jk)+'.fits','rw')
 	fits.write(gal_jk, names = ["RA", "DEC", "gamma1", "gamma2", "redshift"])
         fits.close()
 	
@@ -106,9 +195,13 @@ if __name__  == '__main__':
     delta_z = 0.1
     random_preprocess()
     for zmin in base_z + delta_z*np.arange(9):
-
-        zmax = zmin + delta_z
+        
+	zmax = zmin + delta_z
         gal_preprocess(zmin, zmax)
 	print("done with gal segmentation")
+        incomplete_gal_preprocess(zmin, zmax)
+	print("done with gal segmentation")
         shear_preprocess(zmin, zmax)
+	print("done with shear segmentation")
+        incomplete_shear_preprocess(zmin, zmax)
 	print("done with shear segmentation")

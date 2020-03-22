@@ -3,33 +3,16 @@ from single_cross import cross_corr
 import fitsio
 import sys
 import h5py
+import kmeans_radec
 import fitsio
 import numpy as np
 from fitsio import FITS
-from matplotlib import gridspec
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib
-matplotlib.rcParams['xtick.major.size'] = 7
-matplotlib.rcParams['xtick.labelsize'] = 'x-large'
-matplotlib.rcParams['ytick.major.size'] = 7
-matplotlib.rcParams['ytick.labelsize'] = 'x-large'
-matplotlib.rcParams['xtick.top'] = False
-matplotlib.rcParams['ytick.right'] = False
-matplotlib.rcParams['ytick.direction'] = 'in'
-matplotlib.rcParams['xtick.direction'] = 'in'
-matplotlib.rcParams['font.size'] = 15
-matplotlib.rcParams['figure.figsize'] = [7,7]
-matplotlib.rcParams['mathtext.fontset'] = 'stix'
-matplotlib.rcParams['font.family'] = 'STIXGeneral'
-plt.switch_backend('Agg')
-graph_dir = 'graphs/'
 
 def gtheta(config, zmax, out_file_name, NJK):
 
-    gal = fitsio.read("data/incomplete_gal_zmax_"+str(zmax)+".fits",
+    gal = fitsio.read("data/gal_zmax_"+str(zmax)+".fits",
     		      columns = ["RA", "DEC"])
-    shear = fitsio.read("data/incomplete_shear_zmax_"+str(zmax)+".fits",
+    shear = fitsio.read("data/shear_zmax_"+str(zmax)+".fits",
     		      columns = ["RA", "DEC", "gamma1", "gamma2"])
     random = fitsio.read('flagship_randoms_v2.fits')
 
@@ -41,21 +24,23 @@ def gtheta(config, zmax, out_file_name, NJK):
     xi_jk_holder = []
     print("Starting the jacknife resampling")
     for jk in range(NJK):
-        
-        gal_jk = fitsio.read("data/incomplete_gal_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits", columns = ["RA", "DEC"])
-        shear_jk = fitsio.read("data/incomplete_shear_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits", columns = ["RA", "DEC", "gamma1", "gamma2"])
-        random_jk = fitsio.read("data/random_jk_"+str(jk)+".fits", columns = ["RA", "DEC"])
+    	
+	gal_jk = fitsio.read("data/gal_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits",
+    			  columns = ["RA", "DEC"])
+    	shear_jk = fitsio.read("data/shear_zmax_"+str(zmax)+"_jk_"+str(jk)+".fits",
+    		            columns = ["RA", "DEC", "gamma1", "gamma2"])
+    	random_jk = fitsio.read("data/random_jk_"+str(jk)+".fits",
+    		            columns = ["RA", "DEC"])
 	
 	#compute the cross-correlation for the jackknife region
-        theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config)
-        xi_jk_holder.append(xi_t_jk - xi_tr_jk)
-        print("done with jk resampling = ", jk)
+	theta_jk, xi_t_jk, xi_x_jk, npairs_jk, xi_tr_jk, xi_xr_jk, npairs_r_jk = cross_corr(gal_jk, shear_jk, random_jk, config)
+           
+	xi_jk_holder.append(xi_t_jk - xi_tr_jk)
+	print("done with jk resampling = ", jk)
     	   
     xi_jk_holder = np.array(xi_jk_holder)
-    
     if xi_jk_holder.shape[0] < NJK:
-        xi_jk_holder = np.zeros((NJK, config["nbins"]))
-    
+      xi_jk_holder = np.zeros((NJK, config["nbins"]))
     cov  =  ((NJK - 1)**2./NJK)*np.cov(xi_jk_holder.T)
     corr_file = h5py.File(out_file_name, "w")
     corr_file["theta"] = theta
@@ -65,23 +50,6 @@ def gtheta(config, zmax, out_file_name, NJK):
     corr_file["xi_samples"] = xi_jk_holder
     corr_file.close()
     print("done with saving the results in the output file") 
-    vizualise_results(theta, xi_t, xi_tr, cov)
-    print("done with vizualisation")
-    return None
-
-def vizualise_results(theta, xi_t, xi_tr, cov):
-
-    plt.figure().set_size_inches(8, 6)
-    plt.errorbar(theta, -1.*xi_t, np.diag(cov)**.5, fmt = "o", capsize = 5, linewidth = 0)
-    plt.errorbar(theta, -1.*xi_tr, np.diag(cov)**.5, fmt = "o", capsize = 5, linewidth = 0)
-    plt.errorbar(theta, -1.*xi_t + xi_tr, np.diag(cov)**.5, fmt = "o", capsize = 5, linewidth = 0)
-    plt.yscale('log')
-    plt.xscale('log')
-    plt.xlabel(r'$\theta$')
-    plt.ylabel(r'$w(\theta)$')
-    plt.tight_layout()
-    plt.savefig(graph_dir+'gtheta_'+str(zmin)+'.png')
-    plt.close()
     
     return None
 
@@ -107,7 +75,7 @@ if __name__ == '__main__':
 	      'nbins': nbins, 
 	      'bin_slop': 0.001}
 
-    out_file_name = 'incomplete_gtheta_zmin_'+str(zmin)+'_zmax_'+str(zmax)+'.hdf5'
+    out_file_name = 'gtheta_zmin_'+str(zmin)+'_zmax_'+str(zmax)+'.hdf5'
     sample_file = h5py.File(out_file_name , 'w')
     sample_file.create_dataset("theta", (nbins, ), data = np.zeros((nbins)))
     sample_file.create_dataset("xi", (nbins, ), data = np.zeros((nbins)))

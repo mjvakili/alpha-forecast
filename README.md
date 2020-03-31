@@ -31,6 +31,13 @@ remains high ~O(10).
 ![](graphs/snr_completeness_True.png)
 ![](graphs/snr_completeness_False.png)
 
+## Effect of magnification
+
+We note that magnification in the source catalog barely adds any new object beyond mvis>24.5.
+
+![](graphs/magvis.png)
+![](graphs/magvis_z.png)
+
 ### Contributors: 
 
 Mohammadjavad Vakili (Leiden Observatory) &

@@ -31,12 +31,20 @@ remains high ~O(10).
 ![](graphs/snr_completeness_True.png)
 ![](graphs/snr_completeness_False.png)
 
-## Effect of magnification
+## Effect of magnification on the source catalog
 
 We note that magnification in the source catalog barely adds any new object beyond mvis>24.5.
 
 ![](graphs/magvis.png)
 ![](graphs/magvis_z.png)
+
+## Effect of magnification on the Halpha catalog
+
+Lensing magnification adds a significant number of objects with f<2*10**-16 to the sample 
+of Halpha emitters.
+
+![](graphs/logf.png)
+![](graphs/logf_z.png)
 
 ### Contributors: 
 

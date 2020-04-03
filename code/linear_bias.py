@@ -34,16 +34,15 @@ def shear_extractor(zmin = 1.0, incomp = True, shape_noise = 0.3):
     jk_snr = np.dot(xi.T, np.linalg.solve(jk_cov, xi))**0.5
     # Poisson snr
     shot_snr = np.dot(xi.T, np.linalg.solve(shot_cov, xi))**0.5
+    # masking the covariance and the data using the estimated scale cut 
+    _, _, _, theta_min = load_nz(zmin, incomp)
+    mask = theta > theta_min
+    ind = np.where(mask)[0][0]
     # every relevant info in a dictionary placeholder 
-    shear_dict = {"theta": theta, 
-                  "xi" : xi, 
-		  "shot_cov": shot_cov,
-		  "jk_cov": jk_cov,
-		  "total_cov": total_cov,
-		  "total_snr": total_snr,
-		  "jk_snr": jk_snr,
-		  "shot_snr": shot_snr}
-    
+    shear_dict = {"theta": theta[ind:], 
+                  "xi" : xi[ind:], 
+		  "total_cov": total_cov[ind:, ind:]}
+ 
     return shear_dict		  
 
 def z_angular_mpc(zmean):

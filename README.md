@@ -31,6 +31,13 @@ remains high ~O(10).
 ![](graphs/snr_completeness_True.png)
 ![](graphs/snr_completeness_False.png)
 
+## Linear bias estimation
+
+Since the Halpha sample is a flux-limitted sample, we expect the distant objects to be intrinsically brighter and as a result have a higher linear bias. This is in line with our findings from constriants obtained by MCMC sampling:
+
+![](b_estimate.png)
+
+
 ## Effect of magnification on the source catalog
 
 We note that magnification in the source catalog barely adds any new object beyond mvis>24.5.

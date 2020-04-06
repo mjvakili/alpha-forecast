@@ -38,10 +38,17 @@ def shear_extractor(zmin = 1.0, incomp = True, shape_noise = 0.3):
     _, _, _, theta_min = load_nz(zmin, incomp)
     mask = theta > theta_min
     ind = np.where(mask)[0][0]
+    theta_lin = theta[ind:]
+    xi_lin = xi[ind:]
+    shot_cov_lin = shot_cov[ind:, ind:]
+    jk_cov_lin = jk_cov[ind:, ind:]
+    #debiasing the jk covariance matrix
+    fctr = (100 - 1.)/(100 - len(xi_lin) - 2.)
+    jk_cov_lin = fctr * jk_cov_lin
     # every relevant info in a dictionary placeholder 
-    shear_dict = {"theta": theta[ind:], 
-                  "xi" : xi[ind:], 
-		  "total_cov": total_cov[ind:, ind:]}
+    shear_dict = {"theta": theta_lin, 
+                  "xi" : xi_lin, 
+		  "total_cov": jk_cov_lin + shot_cov_lin}
  
     return shear_dict		  
 
@@ -110,7 +117,7 @@ class linear_model(cosmo_model):
         
         lens = ccl.NumberCountsTracer(self.model, 
                                       dndz = (self.z, self.gal_nz), 
-                                      has_rsd = False, 
+                                      has_rsd = True, 
                                       bias = (self.z, theta*np.ones(len(self.z))))
         source = ccl.WeakLensingTracer(self.model, 
                                        dndz=(self.z, self.shear_nz), 

@@ -34,6 +34,7 @@ def lnPost(theta, **kwargs):
         model_obs = generator(theta)
         res = model_obs - obs
         neg_chisq = -0.5 * np.sum(np.dot(res , np.linalg.solve(obs_cov , res)))
+        #print("neg_chi_tot" , neg_chisq*2./len(res))
 
         return neg_chisq
     
@@ -53,8 +54,7 @@ def mcmc_mpi(Nwalkers, Niters, zmin, incomp, shape_noise, chain_file_name):
     '''
     shear_data = shear_extractor(zmin, incomp, shape_noise)
     Ndim = 1
-    prior_min, prior_max = 0.1, 4.0
-    random_guess = np.array([1.8])
+    random_guess = np.array([1.2])
     #initializing the positions of the walkers
     pos0 = np.repeat(random_guess, Nwalkers).reshape(Ndim, Nwalkers).T + \
                          1.e-4 * np.random.randn(Ndim * Nwalkers).reshape(Nwalkers, Ndim)
@@ -96,9 +96,9 @@ if __name__=="__main__":
     zmin = np.float(sys.argv[3])
     print('zmin = ', np.float(zmin))
     #setting the l-range for integration
-    lmin, lmax, nl = 10, 10000, 5000
+    lmin, lmax, nl = 10, 10000, 1000
     #incompleteness
-    incomp = False
+    incomp = True
     #shape noise
     shape_noise = 0.3
     # assumed cosmo model
